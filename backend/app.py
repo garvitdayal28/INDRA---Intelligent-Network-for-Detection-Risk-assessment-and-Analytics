@@ -58,6 +58,19 @@ def load_models():
 # Load models on server boot
 load_models()
 
+@app.route("/api/metrics", methods=["GET"])
+def get_system_metrics():
+    """
+    Fetches the true mathematical evaluation scores generated during the ML compiling phase
+    """
+    try:
+        import json
+        metrics = json.load(open('../models/metrics.json', 'r'))
+        return jsonify(metrics)
+    except Exception:
+        # Fallback if offline training wasn't fully run yet
+        return jsonify({"accuracy": 0, "precision": 0, "recall": 0, "f1": 0})
+
 @app.route("/api/users/risk", methods=["GET"])
 def get_user_risk_leaderboard():
     """
@@ -113,23 +126,23 @@ def predict_threat():
     # Extract latest analytical snapshot
     snapshot = user_data.iloc[-1].copy()
     feature_cols = ['action_count', 'after_hours_actions', 'has_attachments', 'risk_z_score']
-    X = snapshot[feature_cols].fillna(0).values.reshape(1, -1)
+    X = snapshot[feature_cols].fillna(0).astype(float).values.reshape(1, -1)
     
     # 1. Isolation Forest Inference
     iso_score = iso_model.score_samples(X)[0] 
-    iso_confidence = min(1.0, max(0.0, abs(iso_score) / 2)) 
+    iso_confidence = float(min(1.0, max(0.0, abs(iso_score) / 2))) 
     
     # 2. PyTorch Deep Autoencoder Reconstruction Loss Evaluation
     X_tensor = torch.tensor(X, dtype=torch.float32)
     with torch.no_grad():
         reconstructed = autoencoder(X_tensor)
         mse_loss = nn.MSELoss()(reconstructed, X_tensor).item()
-    auto_confidence = min(1.0, mse_loss / 100) 
+    auto_confidence = float(min(1.0, mse_loss / 100))
     
     # 3. XGBoost Ensemble Layer
     X_df = pd.DataFrame(X, columns=feature_cols)
     X_df['iso_anomaly'] = iso_model.predict(X_df)
-    ensemble_prob = ensemble_model.predict_proba(X_df)[0][1] # Extracted threat probability
+    ensemble_prob = float(ensemble_model.predict_proba(X_df)[0][1]) # Extracted threat probability
     
     # Generate XAI explanation logically mapped from Pandas features
     causes = []
@@ -141,6 +154,26 @@ def predict_threat():
         
     final_risk = int(ensemble_prob * 100)
     
+    # Extract generic Timeline Array (last 10 days)
+    user_timeline = user_data.tail(10).copy()
+    user_timeline['risk_score'] = (user_timeline['risk_z_score'].clip(0, 5) / 5) * 100
+    timeline = [{"name": str(row['day']), "risk": int(row['risk_score'])} for _, row in user_timeline.iterrows()]
+
+    # Synthesize interactive Threat Map (Entity Graph)
+    nodes = [{"id": user_id, "group": 1, "name": "Employee User"}]
+    links = []
+    
+    nodes.append({"id": f"{user_id}_Workspace", "group": 2, "name": "Corporate Device"})
+    links.append({"source": user_id, "target": f"{user_id}_Workspace", "value": 2})
+    
+    if snapshot['has_attachments'] > 0:
+        nodes.append({"id": "Unknown External Server", "group": 3, "name": "Data Exfiltration Target"})
+        links.append({"source": f"{user_id}_Workspace", "target": "Unknown External Server", "value": 5})
+        
+    if snapshot['after_hours_actions'] > 0:
+        nodes.append({"id": "Unrecognized VPN", "group": 4, "name": "Remote Gateway"})
+        links.append({"source": "Unrecognized VPN", "target": user_id, "value": 3})
+    
     return jsonify({
         "status": "Threat Warning" if final_risk > 80 else "Monitored",
         "user_id": user_id,
@@ -150,7 +183,9 @@ def predict_threat():
             "iso_forest": round(iso_confidence, 2),
             "autoencoder": round(auto_confidence, 2),
             "lstm": round(ensemble_prob, 2)
-        }
+        },
+        "timeline": timeline,
+        "graph_data": {"nodes": nodes, "links": links}
     })
 
 if __name__ == "__main__":
