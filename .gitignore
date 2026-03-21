@@ -1,0 +1,39 @@
+# Python Environments
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE Configuration
+.vscode/
+.idea/
+
+# Node/Frontend
+node_modules/
+dist/
+build/
+.npm/
+
+# Environment Variables
+.env
+.env.local
+
+# Datasets and Large Models
+dataset/
+datasets/
+models/
+*.csv
+*.tsv
+*.jsonl
+*.pkl
+*.pt
+*.pth
+*.h5
+*.model
+*.joblib
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
