@@ -25,19 +25,14 @@ dataset/
 datasets/
 models/
 
-# Specific Force-Allow for Deployment Folders
-!backend/dataset/
-!backend/models/
-*.csv
-*.tsv
-*.jsonl
-*.pkl
-*.pt
-*.pth
-*.h5
-*.model
-*.joblib
-
 # OS Generated Files
 .DS_Store
 Thumbs.db
+
+# Specific Force-Allow for Deployment Folders (MUST BE AT THE END)
+!backend/dataset/
+!backend/models/
+!backend/dataset/*.csv
+!backend/models/*.pkl
+!backend/models/*.pt
+!backend/models/*.json
