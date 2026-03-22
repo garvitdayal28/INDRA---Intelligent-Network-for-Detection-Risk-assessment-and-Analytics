@@ -38,6 +38,9 @@ def health_check():
         "endpoints": ["/api/predict", "/api/users/risk", "/api/metrics"]
     })
 
+# Path Helper for Local vs Production
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def load_models():
     """
     Step 2: Runtime Initialization. Loads the internal ML models into high-speed memory.
@@ -45,20 +48,24 @@ def load_models():
     global iso_model, ensemble_model, autoencoder, feature_store
     print("Initializing INDRA Runtime Engine (Flask) and mounting Live Models...")
     try:
-        # Load internal datasets (relative to this backend folder)
-        if os.path.exists('dataset/feature_store.csv'):
-            feature_store = pd.read_csv('dataset/feature_store.csv')
+        # Load internal datasets (using absolute paths relative to this script)
+        feature_path = os.path.join(BASE_DIR, 'dataset', 'feature_store.csv')
+        if os.path.exists(feature_path):
+            feature_store = pd.read_csv(feature_path)
             
         # Load Internal Models
-        if os.path.exists('models/iso_forest.pkl'):
-            iso_model = pickle.load(open('models/iso_forest.pkl', 'rb'))
+        iso_path = os.path.join(BASE_DIR, 'models', 'iso_forest.pkl')
+        if os.path.exists(iso_path):
+            iso_model = pickle.load(open(iso_path, 'rb'))
             
-        if os.path.exists('models/ensemble.pkl'):
-            ensemble_model = pickle.load(open('models/ensemble.pkl', 'rb'))
+        ensemble_path = os.path.join(BASE_DIR, 'models', 'ensemble.pkl')
+        if os.path.exists(ensemble_path):
+            ensemble_model = pickle.load(open(ensemble_path, 'rb'))
             
-        if os.path.exists('models/autoencoder.pt'):
+        ae_path = os.path.join(BASE_DIR, 'models', 'autoencoder.pt')
+        if os.path.exists(ae_path):
             autoencoder = BehavioralAutoencoder(4)
-            autoencoder.load_state_dict(torch.load('models/autoencoder.pt'))
+            autoencoder.load_state_dict(torch.load(ae_path))
             autoencoder.eval()
             
         print("✅ Internal live models connected to INDRA Engine.")
@@ -74,8 +81,8 @@ def get_system_metrics():
     Fetches the true mathematical evaluation scores generated during the ML compiling phase
     """
     try:
-        import json
-        metrics = json.load(open('models/metrics.json', 'r'))
+        metrics_path = os.path.join(BASE_DIR, 'models', 'metrics.json')
+        metrics = json.load(open(metrics_path, 'r'))
         return jsonify(metrics)
     except Exception:
         # Fallback if metrics wasn't moved/found
