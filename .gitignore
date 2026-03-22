@@ -24,6 +24,10 @@ build/
 dataset/
 datasets/
 models/
+
+# Specific Force-Allow for Deployment Folders
+!backend/dataset/
+!backend/models/
 *.csv
 *.tsv
 *.jsonl
