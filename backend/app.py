@@ -38,6 +38,20 @@ def health_check():
         "endpoints": ["/api/predict", "/api/users/risk", "/api/metrics"]
     })
 
+@app.route("/api/debug/files", methods=["GET"])
+def debug_files():
+    """
+    Diagnostics route to verify the file structure on Render deployment.
+    """
+    files_tree = {}
+    for root, dirs, files in os.walk(BASE_DIR):
+        relative_root = os.path.relpath(root, BASE_DIR)
+        files_tree[relative_root] = {"dirs": dirs, "files": files}
+    return jsonify({
+        "base_dir": BASE_DIR,
+        "structure": files_tree
+    })
+
 # Path Helper for Local vs Production
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
