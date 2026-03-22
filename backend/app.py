@@ -197,9 +197,10 @@ def predict_threat():
 
     # Hybrid Risk Score: Multi-factor consensus
     # Baseline (25%) + Isolation (10%) + Autoencoder (15%) + XGBoost (50%)
-    # This prevents the AI from 'overheating' (77%) when the baseline is low (12%)
     hybrid_score = (baseline_risk * 0.25) + (iso_confidence * 0.10) + (auto_confidence * 0.15) + (ensemble_prob * 0.5)
-    final_risk = int(min(100, hybrid_score * 100))
+    
+    # Ensure the 'Deep Scan' is at least as high as the 'Leaderboard Baseline'
+    final_risk = int(max(baseline_risk * 100, hybrid_score * 100))
     
     # Extract generic Timeline Array (last 10 days)
     user_timeline = user_data.tail(10).copy()
