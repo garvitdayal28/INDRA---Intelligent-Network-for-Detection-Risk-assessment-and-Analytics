@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 
 // Automatic Environment Switching: Vercel uses the env var VITE_API_BASE_URL, local uses localhost
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const rawApiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = rawApiUrl.replace(/\/$/, ''); // Remove trailing slash if present
 
 function App() {
   const [leaderboard, setLeaderboard] = useState([])

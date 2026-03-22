@@ -35,6 +35,7 @@ def health_check():
     return jsonify({
         "status": "online",
         "system": "INDRA",
+        "build_id": "v1.2-path-fix",
         "message": "AI-Powered Insider Threat Detection Engine is Active.",
         "models_loaded": {
             "isolation_forest": iso_model is not None,
