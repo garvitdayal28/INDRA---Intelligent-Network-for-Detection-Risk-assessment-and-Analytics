@@ -192,7 +192,10 @@ def predict_threat():
     
     explanation = " + ".join(causes) if causes else "Behavior within expected historical bounds."
         
-    final_risk = int(ensemble_prob * 100)
+    # Hybrid Risk Score: Weighted blend of sub-models (30%) + XGBoost Ensemble (70%)
+    # This prevents '0/100' when sensors are already detecting anomalies
+    hybrid_score = (iso_confidence * 0.15) + (auto_confidence * 0.15) + (ensemble_prob * 0.7)
+    final_risk = int(min(100, hybrid_score * 100))
     
     # Extract generic Timeline Array (last 10 days)
     user_timeline = user_data.tail(10).copy()
