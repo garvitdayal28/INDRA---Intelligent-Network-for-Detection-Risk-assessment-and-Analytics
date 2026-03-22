@@ -192,9 +192,13 @@ def predict_threat():
     
     explanation = " + ".join(causes) if causes else "Behavior within expected historical bounds."
         
-    # Hybrid Risk Score: Weighted blend of sub-models (30%) + XGBoost Ensemble (70%)
-    # This prevents '0/100' when sensors are already detecting anomalies
-    hybrid_score = (iso_confidence * 0.15) + (auto_confidence * 0.15) + (ensemble_prob * 0.7)
+    # Normalize the baseline Z-score (0-1 range, capped at 5)
+    baseline_risk = float(min(1.0, snapshot['risk_z_score'] / 5.0))
+
+    # Hybrid Risk Score: Multi-factor consensus
+    # Baseline (25%) + Isolation (10%) + Autoencoder (15%) + XGBoost (50%)
+    # This prevents the AI from 'overheating' (77%) when the baseline is low (12%)
+    hybrid_score = (baseline_risk * 0.25) + (iso_confidence * 0.10) + (auto_confidence * 0.15) + (ensemble_prob * 0.5)
     final_risk = int(min(100, hybrid_score * 100))
     
     # Extract generic Timeline Array (last 10 days)
