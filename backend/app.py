@@ -26,32 +26,42 @@ ensemble_model = None
 autoencoder = None
 feature_store = None
 
+@app.route("/", methods=["GET"])
+def health_check():
+    """
+    Root route to provide a visual 'Online' status for Render/Vercel and prevent 404s.
+    """
+    return jsonify({
+        "status": "online",
+        "system": "INDRA",
+        "message": "AI-Powered Insider Threat Detection Engine is Active.",
+        "endpoints": ["/api/predict", "/api/users/risk", "/api/metrics"]
+    })
+
 def load_models():
     """
-    Step 2: Runtime Initialization. Loads the Offline-trained ML models into high-speed memory.
+    Step 2: Runtime Initialization. Loads the internal ML models into high-speed memory.
     """
     global iso_model, ensemble_model, autoencoder, feature_store
     print("Initializing INDRA Runtime Engine (Flask) and mounting Live Models...")
     try:
-        # Load datasets
-        if os.path.exists('../dataset/feature_store.csv'):
-            feature_store = pd.read_csv('../dataset/feature_store.csv')
+        # Load internal datasets (relative to this backend folder)
+        if os.path.exists('dataset/feature_store.csv'):
+            feature_store = pd.read_csv('dataset/feature_store.csv')
             
-        # Load Isolation Forest
-        if os.path.exists('../models/iso_forest.pkl'):
-            iso_model = pickle.load(open('../models/iso_forest.pkl', 'rb'))
+        # Load Internal Models
+        if os.path.exists('models/iso_forest.pkl'):
+            iso_model = pickle.load(open('models/iso_forest.pkl', 'rb'))
             
-        # Load XGBoost Ensemble
-        if os.path.exists('../models/ensemble.pkl'):
-            ensemble_model = pickle.load(open('../models/ensemble.pkl', 'rb'))
+        if os.path.exists('models/ensemble.pkl'):
+            ensemble_model = pickle.load(open('models/ensemble.pkl', 'rb'))
             
-        # Load Autoencoder PyTorch Model
-        if os.path.exists('../models/autoencoder.pt'):
+        if os.path.exists('models/autoencoder.pt'):
             autoencoder = BehavioralAutoencoder(4)
-            autoencoder.load_state_dict(torch.load('../models/autoencoder.pt'))
+            autoencoder.load_state_dict(torch.load('models/autoencoder.pt'))
             autoencoder.eval()
             
-        print("✅ Live models connected to Flask API.")
+        print("✅ Internal live models connected to INDRA Engine.")
     except Exception as e:
         print(f"Error loading models: {e}")
 
@@ -65,10 +75,10 @@ def get_system_metrics():
     """
     try:
         import json
-        metrics = json.load(open('../models/metrics.json', 'r'))
+        metrics = json.load(open('models/metrics.json', 'r'))
         return jsonify(metrics)
     except Exception:
-        # Fallback if offline training wasn't fully run yet
+        # Fallback if metrics wasn't moved/found
         return jsonify({"accuracy": 0, "precision": 0, "recall": 0, "f1": 0})
 
 @app.route("/api/users/risk", methods=["GET"])

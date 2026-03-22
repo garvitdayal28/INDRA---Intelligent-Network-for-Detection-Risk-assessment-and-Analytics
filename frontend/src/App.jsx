@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
-import ForceGraph2D from 'react-force-graph-2d'
+
+// Deployment Config: Update this to your Render URL (e.g., https://indra-backend.onrender.com)
+const API_BASE_URL = 'http://localhost:8000';
 
 function App() {
   const [leaderboard, setLeaderboard] = useState([])
@@ -9,12 +11,12 @@ function App() {
   const [graphWidth, setGraphWidth] = useState(400)
   const [selectedUser, setSelectedUser] = useState('jsmith')
   const containerRef = useRef(null)
-
+ 
   const [metrics, setMetrics] = useState(null)
-
+ 
   const handleSimulateLog = (targetUserId) => {
     setSelectedUser(targetUserId)
-    fetch('http://localhost:8000/api/predict', {
+    fetch(`${API_BASE_URL}/api/predict`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -29,15 +31,15 @@ function App() {
         console.error("Error simulating test:", err)
       })
   }
-
+ 
   useEffect(() => {
     // Fetch offline evaluation metrics
-    fetch('http://localhost:8000/api/metrics')
+    fetch(`${API_BASE_URL}/api/metrics`)
       .then(res => res.json())
       .then(data => setMetrics(data))
-
+ 
     // Fetch Global Security Command Center leaderboard
-    fetch('http://localhost:8000/api/users/risk')
+    fetch(`${API_BASE_URL}/api/users/risk`)
       .then(res => res.json())
       .then(data => {
         console.log("🚀 [INDRA Backend] Leaderboard Loaded:");
@@ -180,9 +182,55 @@ function App() {
                   </div>
 
                   {/* Advanced Visualizations Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  {/* Advanced Visualizations: Vertical Stack (Graph then Timeline) */}
+                  <div className="flex flex-col gap-6 mt-6">
                     
-                    {/* Timeline Chart */}
+                    {/* Attack Path Timeline (Kill Chain) */}
+                    <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                      <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Lateral Movement Path (Kill Chain)</h4>
+                      <div className="h-48 w-full bg-slate-900 rounded border border-slate-700 overflow-x-auto relative flex items-center justify-start px-4 scrollbar-thin scrollbar-thumb-slate-600">
+                        {predictResult.graph_data && (
+                          <div className="flex items-center min-w-max mx-auto space-x-2 md:space-x-4">
+                            {[...predictResult.graph_data.nodes]
+                              .sort((a, b) => {
+                                const order = { 4: 0, 1: 1, 2: 2, 3: 3 }
+                                return order[a.group] - order[b.group]
+                              })
+                              .map((node, index, arr) => (
+                                <React.Fragment key={node.id}>
+                                  {/* Node Card */}
+                                  <div className={`flex flex-col items-center justify-center p-3 rounded-xl text-center border w-32 shadow-lg backdrop-blur-sm transition-transform hover:scale-105
+                                    ${node.group === 1 ? 'bg-blue-500/10 border-blue-500/50 shadow-blue-500/20' : ''}
+                                    ${node.group === 2 ? 'bg-emerald-500/10 border-emerald-500/50 shadow-emerald-500/20' : ''}
+                                    ${node.group === 3 ? 'bg-red-500/10 border-red-500/50 shadow-red-500/20' : ''}
+                                    ${node.group === 4 ? 'bg-amber-500/10 border-amber-500/50 shadow-amber-500/20' : ''}
+                                  `}>
+                                    {/* Icon */}
+                                    {node.group === 1 && <svg className="w-8 h-8 text-blue-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
+                                    {node.group === 2 && <svg className="w-8 h-8 text-emerald-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
+                                    {node.group === 3 && <svg className="w-8 h-8 text-red-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M12 5l7 7-7 7" /></svg>}
+                                    {node.group === 4 && <svg className="w-8 h-8 text-amber-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>}
+                                    
+                                    <span className="text-xs font-bold text-slate-200">{node.name}</span>
+                                    <span className="text-[10px] text-slate-400 truncate w-full mt-1" title={node.id}>{node.id}</span>
+                                  </div>
+
+                                  {/* Arrow */}
+                                  {index < arr.length - 1 && (
+                                    <div className="flex flex-col items-center">
+                                      <svg className={`w-6 h-6 ${node.group === 3 || node.group === 4 || arr[index+1]?.group === 3 ? 'text-red-500 animate-pulse' : 'text-slate-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 10-Day Risk Timeline */}
                     <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
                       <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">10-Day User Risk Timeline</h4>
                       <div className="w-full" style={{ height: 200 }}>
@@ -198,45 +246,6 @@ function App() {
                             <Line type="monotone" dataKey="risk" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, fill: '#ef4444' }} activeDot={{ r: 6 }} />
                           </LineChart>
                         </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* Network Graph */}
-                    <div className="bg-slate-800 p-4 rounded-lg border border-slate-700" ref={containerRef}>
-                      <h4 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Lateral Movement Map</h4>
-                      <div className="h-48 w-full bg-slate-900 rounded border border-slate-700 overflow-hidden relative flex items-center justify-center">
-                        {predictResult.graph_data && (
-                          <ForceGraph2D
-                            width={graphWidth > 50 ? graphWidth - 32 : 300} 
-                            height={192} 
-                            graphData={predictResult.graph_data}
-                            nodeLabel="name"
-                            nodeCanvasObject={(node, ctx, globalScale) => {
-                              const label = node.name;
-                              const fontSize = 12 / globalScale;
-                              ctx.font = `${fontSize}px Sans-Serif`;
-                              
-                              // Draw node circle
-                              ctx.beginPath();
-                              ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI, false);
-                              ctx.fillStyle = node.group === 1 ? '#3b82f6' : 
-                                              node.group === 2 ? '#10b981' : 
-                                              node.group === 3 ? '#ef4444' : '#f59e0b';
-                              ctx.fill();
-                              
-                              // Draw text label permanently under the node
-                              ctx.textAlign = 'center';
-                              ctx.textBaseline = 'top';
-                              ctx.fillStyle = '#cbd5e1'; // tailwind slate-300
-                              ctx.fillText(label, node.x, node.y + 7);
-                            }}
-                            linkColor={() => '#475569'}
-                            linkWidth={2}
-                            linkDirectionalParticles={2}
-                            linkDirectionalParticleSpeed={0.01}
-                            backgroundColor="#0f172a"
-                          />
-                        )}
                       </div>
                     </div>
 
