@@ -31,11 +31,18 @@ def health_check():
     """
     Root route to provide a visual 'Online' status for Render/Vercel and prevent 404s.
     """
+    global iso_model, ensemble_model, autoencoder, feature_store
     return jsonify({
         "status": "online",
         "system": "INDRA",
         "message": "AI-Powered Insider Threat Detection Engine is Active.",
-        "endpoints": ["/api/predict", "/api/users/risk", "/api/metrics"]
+        "models_loaded": {
+            "isolation_forest": iso_model is not None,
+            "ensemble": ensemble_model is not None,
+            "autoencoder": autoencoder is not None,
+            "feature_store": feature_store is not None
+        },
+        "endpoints": ["/api/predict", "/api/users/risk", "/api/metrics", "/api/debug/files"]
     })
 
 @app.route("/api/debug/files", methods=["GET"])
